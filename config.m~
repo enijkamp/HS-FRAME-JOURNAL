@@ -40,7 +40,6 @@ para.ratioDisplacementSUM3 = 0;   % default=0. Compute all values in SUM3 map
 para.locationShiftLimit = 0;
 para.orientShiftLimit = 0;    % arg-max
 
-%para.numResolution = 3;  
-para.numResolution = 1;     
+para.numResolution = 3;     
 
 para.useSUM3 = 1;

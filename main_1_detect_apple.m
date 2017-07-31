@@ -104,6 +104,10 @@ cachePath = ['./output/' para.name '/feature'];
 templatePath = ['./output/' para.name '/template'];
 resultPath = ['./output/' para.name '/result_seed_' num2str(seed)];
 
+if exist(['./output/' para.name],'dir')
+    rmdir(['./output/' para.name],'s')
+end
+
 if ~exist(cachePath,'dir')
     mkdir(cachePath)
 else
@@ -344,7 +348,7 @@ it = 0;
 ShowClusteringAssignment;
 
 %% EM iteration
-for it = 1 : numEMIteration
+for it = 1:numEMIteration
 
     %%%% M-step
     disp(['M-step of iteration ' num2str(it)]);
@@ -388,7 +392,7 @@ for it = 1 : numEMIteration
                     template.selectedLambdas=single(zeros(1,template.numSelected));
 
                     disp('start learning Frame model');
-                    [template,currSample, logZ]=sparseFRAMElearn(template, nIter, filters, clusters(c).rHat, sx, sy, halfFilterSizes, ...
+                    [template, currSample, logZ]=sparseFRAMElearn(template, nIter, filters, clusters(c).rHat, sx, sy, halfFilterSizes, ...
                         locationShiftLimit, nTileRow,nTileCol,epsilon,L,lambdaLearningRate_MP, numSample, nPartCol, nPartRow, part_sx, part_sy, isSaved, clusterSavingFolder);
 
                 otherwise
@@ -458,7 +462,6 @@ for it = 1 : numEMIteration
     %%% preparation: collect training images for each cluster
     for c = 1:numCluster
 
-        %clusteredImageIdx{c}=[];
         clusters(c).imageIndex=[];
         clusters(c).cropImage={};
 
@@ -487,7 +490,7 @@ for it = 1 : numEMIteration
             cropedImage = cropedImage - mean(cropedImage(:));
             cropedImage = cropedImage/std(cropedImage(:))*sqrt(sigsq);
 
-            % for re-learnig in matching pursuit
+            % for re-learning in matching pursuit
             clusters(c).cropImage=[clusters(c).cropImage, double(cropedImage)];
 
             % compute feature map to learn

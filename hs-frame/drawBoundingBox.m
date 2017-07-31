@@ -1,4 +1,3 @@
-         
 showObjectBoundingBox=1;
 showPartBoundingBox=1;
 
@@ -12,38 +11,6 @@ greyImg = rgb2gray(tmp_img);  % images at multiple resolutions
 rgb_greyImg = cat(3,greyImg,greyImg,greyImg);
 matchedBoundingBox = rgb_greyImg;
             
-
-
-%% prepare the output variable for visualization of matched template
-if showObjectBoundingBox
-    margin = 2;  % line width of the bounding box
-    xx = repmat((1:sx),1, margin*2);
-    yy = [];
-    for y = [1:margin sy-margin+1:sy]
-        yy = [yy,ones(1,sx)*y];
-    end
-    yy = [yy,repmat((1:sy),1,margin*2)];
-    for x = [1:margin sx-margin+1:sx]
-        xx = [xx,ones(1,sy)*x];
-    end
-    inRow = single(xx-floor(sx/2));
-    inCol = single(yy-floor(sy/2));
-    tScale = 0; rScale = 1; cScale = 1; inO = zeros(numel(inRow),1,'single'); inS = zeros(numel(inRow),1,'single');
-    
-    [outRow, outCol] = mexc_TemplateAffineTransform(tScale,rScale,cScale,Mrot,inRow,inCol,inO,inS,nOrient);
-    
-    % directly overwrite the corresponding pixels
-    for p = 1:length(outRow)
-        x = round(MFx + outRow(p));
-        y = round(MFy + outCol(p));
-        if x > 0 && x <= size(matchedBoundingBox,1) && y > 0 && y <= size(matchedBoundingBox,2)
-            matchedBoundingBox(x,y,:) = [255 0 0];  % color of the bounding box
-            % matchedBoundingBox(x,y) = [0.1];
-        end
-    end
-end
-
-
 %%% draw bounding box for parts
 if showPartBoundingBox        
      for iPart = 1:numPart      % draw each bounding box for parts
@@ -127,7 +94,36 @@ if showPartBoundingBox
        matchedBoundingBox = imresize(matchedBoundingBox,size(imageLoaded.ImageMultiResolution{Mind}),'nearest');
      end
      
-end            
+end    
+
+%% prepare the output variable for visualization of matched template
+if showObjectBoundingBox
+    margin = 2;  % line width of the bounding box
+    xx = repmat((1:sx),1, margin*2);
+    yy = [];
+    for y = [1:margin sy-margin+1:sy]
+        yy = [yy,ones(1,sx)*y];
+    end
+    yy = [yy,repmat((1:sy),1,margin*2)];
+    for x = [1:margin sx-margin+1:sx]
+        xx = [xx,ones(1,sy)*x];
+    end
+    inRow = single(xx-floor(sx/2));
+    inCol = single(yy-floor(sy/2));
+    tScale = 0; rScale = 1; cScale = 1; inO = zeros(numel(inRow),1,'single'); inS = zeros(numel(inRow),1,'single');
+    
+    [outRow, outCol] = mexc_TemplateAffineTransform(tScale,rScale,cScale,Mrot,inRow,inCol,inO,inS,nOrient);
+    
+    % directly overwrite the corresponding pixels
+    for p = 1:length(outRow)
+        x = round(MFx + outRow(p));
+        y = round(MFy + outCol(p));
+        if x > 0 && x <= size(matchedBoundingBox,1) && y > 0 && y <= size(matchedBoundingBox,2)
+            matchedBoundingBox(x,y,:) = [255 0 0];  % color of the bounding box
+            % matchedBoundingBox(x,y) = [0.1];
+        end
+    end
+end
             
 imwrite(matchedBoundingBox, fullfile(boundingBoxSavingFolder,['boundingBox-cluster-' num2str(c) '-img-' num2str(iImg,'%04d') '.png']));  
 % 

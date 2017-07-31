@@ -87,7 +87,7 @@ for r = 1:length(rotationRange)
     if (MMAX3 < maxOverResolution)
         MMAX3 = maxOverResolution;
         Mrot = rotationRange(r);
-        Mind = ind;  % best resoltion
+        Mind = ind;  % best resolution
         MFx = allFx(ind);
         MFy = allFy(ind);
     end
