@@ -16,8 +16,7 @@ para.DoGScaleList = [];
 
 para.numCluster = 1;
 para.numWavelet = 60;   % default 300, 370
-%para.numEMIteration = 10;
-para.numEMIteration = 3;
+para.numEMIteration = 10;
 para.isLocalNormalize = true;
 
 %para.relativePartRotationRange = 1*(-1:1);

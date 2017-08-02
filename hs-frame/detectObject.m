@@ -5,6 +5,7 @@ function  [MMAX3]=detectObject(imageLoaded, clusters, c, iImg, numPart, numFilte
 numResolution = length(imageLoaded.ImageMultiResolution);
 numRotate = length(rotationRange);
 numPartRotate = length(partRotationRange);
+
 % compute SUM2 map
 tic 
 SUM2map=cell(numPartRotate, numPart,numResolution);
@@ -88,8 +89,8 @@ for r = 1:length(rotationRange)
         MMAX3 = maxOverResolution;
         Mrot = rotationRange(r);
         Mind = ind;  % best resolution
-        MFx = allFx(ind);
-        MFy = allFy(ind);
+        MFx = allFx(ind)-1; % TODO: is this a bug? (EN)
+        MFy = allFy(ind)-1;
     end
 end
 

@@ -223,7 +223,7 @@ void compute()
    some of the pointers. After that, matlab can then use these results. 
    
    So matlab is very much like a managing platform for organizing the 
-   experiments, and mex C is like a work enginee for fast computation. */
+   experiments, and mex C is like a work engine for fast computation. */
 
 void mexFunction(int nlhs, mxArray *plhs[], 
                  int nrhs, const mxArray *prhs[])                
