@@ -57,7 +57,7 @@ rotationRange = -rotateShiftLimit:rotateShiftLimit;
 numRotate = length(rotationRange);
 RatioDisplacementSUM3 = para.ratioDisplacementSUM3;   % default=0. Compute all values in SUM3 map
 
-nOrient = 16;
+nOrient = para.nOrient;
 locationShiftLimit = para.locationShiftLimit;  % arg-max
 orientShiftLimit = para.orientShiftLimit;    % arg-max
 %%%%%%%
@@ -109,13 +109,15 @@ if exist(['./output/' para.name],'dir')
     rmdir(['./output/' para.name],'s')
 end
 
+if ~exist(templatePath,'dir'),mkdir(templatePath),end
+
 if ~exist(cachePath,'dir')
     mkdir(cachePath)
 else
     rmdir(cachePath,'s')
     mkdir(cachePath)
 end
-if ~exist(templatePath,'dir'),mkdir(templatePath),end
+
 if ~exist(resultPath,'dir')
     mkdir(resultPath)
     mkdir(fullfile(resultPath,'img'));
@@ -411,7 +413,7 @@ for it = 1:numEMIteration
             clusters(c).logZ=temp_result{c,3};
 
             tic
-            [clusters(c).S2T, clusters(c).S3T] = hierachicalTemplate(numPart, part_sx, part_sy, sx, sy, rotateShiftLimit, nOrient, numRotate, clusters(c).template, nScaleGabor, partRotationRange,PartLocX, PartLocY);
+            [clusters(c).S2T, clusters(c).S3T] = hierachicalTemplate(numPart, part_sx, part_sy, sx, sy, rotateShiftLimit, nOrient, numRotate, clusters(c).template, nScaleGabor, partRotationRange, PartLocX, PartLocY);
             disp(['spliting the learned template for cluster ' num2str(c) ': ' num2str(toc) ' seconds']);
         end
     end
@@ -450,6 +452,83 @@ for it = 1:numEMIteration
 
         end
     end
+    
+    
+    
+    
+    
+    %%
+    disp('Cropping images and preparing feature maps for next iteration of learning:');
+
+    copy_MAX3scoreAll=MAX3scoreAll;
+    %%% preparation: collect training images for each cluster
+    for c = 1:numCluster
+
+        %clusteredImageIdx{c}=[];
+        clusters(c).imageIndex=[];
+        clusters(c).cropImage={};
+
+        %%% initialize the observed statistics by setting zeros
+        for iFilter = 1:numFilter
+            clusters(c).rHat{iFilter}=zeros(sx, sy,'single');
+        end
+
+
+        t = 0; % index of image in the cluster, as well as the number of images in cluster
+        for iImg = 1:numImage
+            tic
+            [~, ind]=max(copy_MAX3scoreAll(iImg, :));
+            if ind~=c
+                continue;  % skip image that does not belong to cluster c
+            end
+            %clusteredImageIdx{c}=[clusteredImageIdx{c},iImg]; % collect the id for each cluster
+            clusters(c).imageIndex=[clusters(c).imageIndex, iImg];
+
+            t = t + 1;
+
+            %             if toUseCroppedImg
+            % load morphed cropped images for training
+            imageLoaded = load(fullfile(morphedCroppedSavingFolder,['morphed-cluster-' num2str(c) '-img-' num2str(iImg,'%04d')]), 'cropedMorphedImage');
+            cropedImage = imageLoaded.cropedMorphedImage;
+
+            cropedImage = cropedImage - mean(cropedImage(:));
+            cropedImage = cropedImage/std(cropedImage(:))*sqrt(sigsq);
+
+            % for re-learnig in matching pursuit
+            clusters(c).cropImage=[clusters(c).cropImage, double(cropedImage)];
+
+            % compute feature map to learn
+            [~,MAX1] = applyfilterBank_MultiResolution_sparseV4({cropedImage}, filters, halfFilterSizes, nOrient, locationShiftLimit,orientShiftLimit,...
+                isLocalNormalize,isSeparate,localNormScaleFactor,thresholdFactor,nScaleGabor,nScaleDoG, sqrt(sigsq));  % if using local normalization, the last parameter is important.
+            %             else
+            %
+            %               % load morphed cropped images for training
+            %               imageLoaded = load(fullfile(morphedCroppedSavingFolder,['morphed-cluster-' num2str(c) '-img-' num2str(iImg,'%04d')]), 'croppedMorphedSUM1');
+            %               MAX1 = localmax(imageLoaded.croppedMorphedSUM1, nOrient, nScaleGabor, nScaleDoG, locationShiftLimit, orientShiftLimit);
+            %
+            %             end
+
+            % sum over the observed statistics (within cluster)
+            for iFilter = 1:numFilter
+                clusters(c).rHat{iFilter}=clusters(c).rHat{iFilter}+MAX1{iFilter};
+            end
+
+            disp(['cropping time for image ' num2str(t) ' in cluster ' num2str(c) ': ' num2str(toc) ' seconds']);
+        end% iImage
+
+        disp(['Cluster ' num2str(c) ' has ' num2str(t) ' members.']);
+
+        % average the observed statistics
+        for iFilter = 1:numFilter
+            clusters(c).rHat{iFilter}=clusters(c).rHat{iFilter}/t;
+        end
+
+    end
+
+    ShowClusteringAssignment;  % show the cluster member before learning
+
+    template_name = sprintf([templatePath '/template_task%d_seed%d_iter%d.mat'], task_id, seed, it);
+    save(template_name, 'clusters', 'MAX3scoreAll');
 
 end
 

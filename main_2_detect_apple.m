@@ -7,11 +7,17 @@ addpath('hs-frame');
 
 % config
 para = config();
+
+% TODO: override, fix this
+para.name = 'sequence_test';
+para.dataPath = 'data-set/sequence/';
+para.categoryName = 'apple_test';
+
 task_id = 1;
 noWorkers = 1;
 
 % mex
-compileMex();
+%compileMex();
 
 % set seed for random numbers generation
 seed=1;
@@ -57,7 +63,7 @@ rotationRange = -rotateShiftLimit:rotateShiftLimit;
 numRotate = length(rotationRange);
 RatioDisplacementSUM3 = para.ratioDisplacementSUM3;   % default=0. Compute all values in SUM3 map
 
-nOrient = 16;
+nOrient = para.nOrient;
 locationShiftLimit = para.locationShiftLimit;  % arg-max
 orientShiftLimit = para.orientShiftLimit;    % arg-max
 %%%%%%%
@@ -102,7 +108,7 @@ thresholdFactor = 0.01;
 
 inPath = [para.dataPath para.categoryName];
 cachePath = ['./output/' para.name '/feature'];
-templatePath = ['./output/' para.name '/template'];
+templatePath = ['./output/' 'sequence' '/template'];
 resultPath = ['./output/' para.name '_test/result_seed_' num2str(seed)];
 
 if exist(['./output/' para.name],'dir')
@@ -115,7 +121,6 @@ else
     rmdir(cachePath,'s')
     mkdir(cachePath)
 end
-if ~exist(templatePath,'dir'),mkdir(templatePath),end
 if ~exist(resultPath,'dir')
     mkdir(resultPath)
     mkdir(fullfile(resultPath,'img'));
@@ -262,7 +267,6 @@ for iImg = 1:numImage
 
     disp(['filtering time: ' num2str(toc) ' seconds']);
 
-
     %     mapName = fullfile(cachePath,['SUMMAXmap-image' num2str(iImg) '.mat']);
     %     current_file_name=files(iImg).name;
     %     save(mapName, 'M1','current_file_name');  % only save the MAX1
@@ -279,7 +283,6 @@ MAX3scoreAll = rand(numImage, numCluster);   % randomly assign members to differ
 for c = 1:numCluster
 
     clusters(c).imageIndex=[];
-
     clusters(c).cropImage={};
 
     %%% initialize the observed statistics by setting zeros
@@ -348,76 +351,14 @@ end
 
 %% Step 2: EM iteration
 for it = 1:numEMIteration
-
-    %%%% M-step
-    disp(['M-step of iteration ' num2str(it)]);
-
-    %% learn model for each cluster
-    disp('Learning: learning sparse FRAME model for each cluster:');
-
+    
+    template_name = sprintf([templatePath '/template_task%d_seed%d_iter%d.mat'], task_id, seed, it);
+    load(template_name, 'clusters', 'MAX3scoreAll');
+    
     savingFolder=fullfile(resultPath,['iteration' num2str(it) '/']);
     if ~exist(savingFolder)
         mkdir(savingFolder);
     end
-
-    ticID=tic;
-
-    clear template currSample logZ deformedTemplate;
-
-    temp_result=cell(numCluster,3);  % colum 1 is template, colum 2 is currSample, colum 3 is logZ
-
-    for c = 1:numCluster
-        if ~isempty(clusters(c).imageIndex)
-            clusterSavingFolder=fullfile(savingFolder,['cluster' num2str(c) '/']);
-            if ~exist(clusterSavingFolder, 'dir')
-                mkdir(clusterSavingFolder);
-            end
-
-            switch para.method
-                case 'one_stage'
-
-                    [template, currSample, logZ] = sparseFRAMElearnGibbs_multipleSelection(filters, nScaleGabor, nScaleDoG, nOrient, filterSymbol, half, clusters(c).rHat, ...
-                        sx, sy, halfFilterSizes, locationShiftLimit, nTileRow, nTileCol, lambdaLearningRate_boosting, numFilter, numWavelet, interval, Corr, threshold_corrBB, c_val_list, ...
-                        lower_bound_rand, upper_bound_rand, nPartCol, nPartRow, part_sx, part_sy, gradient_threshold_scale, clusterSavingFolder);
-
-                case 'two_stage'
-
-                    disp('start filter selection');
-                    [template, deformedTemplate] = filtersSelection_em(clusters(c).cropImage, GaborScaleList, DoGScaleList, nOrient, numSketch, numTopFeatureToShow,...
-                        locationShiftLimit, orientShiftLimit, sx, sy, clusterSavingFolder);
-                    template.selectedLambdas=single(zeros(1,template.numSelected));
-
-                    disp('start learning Frame model');
-                    [template, currSample, logZ] = sparseFRAMElearn(template, nIter, filters, clusters(c).rHat, sx, sy, halfFilterSizes, ...
-                        locationShiftLimit, nTileRow,nTileCol,epsilon,L,lambdaLearningRate_MP, numSample, nPartCol, nPartRow, part_sx, part_sy, isSaved, clusterSavingFolder);
-
-                otherwise
-                    error('Unkown method.');
-            end
-
-            %%%%%%%%%%%%%%%%%
-            temp_result(c,1)={template};
-            temp_result(c,2)={currSample};
-            temp_result(c,3)={single(logZ)};
-        end
-    end
-
-
-    % collect results and split template into several moving parts.
-    for c = 1:numCluster
-        if ~isempty(clusters(c).imageIndex)
-            clusters(c).template=temp_result{c,1};
-            clusters(c).currSample=temp_result{c,2};
-            clusters(c).logZ=temp_result{c,3};
-
-            tic
-            [clusters(c).S2T, clusters(c).S3T] = hierachicalTemplate(numPart, part_sx, part_sy, sx, sy, rotateShiftLimit, nOrient, numRotate, clusters(c).template, nScaleGabor, partRotationRange,PartLocX, PartLocY);
-            disp(['spliting the learned template for cluster ' num2str(c) ': ' num2str(toc) ' seconds']);
-        end
-    end
-
-    disp(['Total learning time of sparse FRAME for ' num2str(numCluster) ' clusters takes ' num2str(toc(ticID)) ' seconds']);
-
 
     %%%% E-step
     disp(['E-step of iteration ' num2str(it)]);

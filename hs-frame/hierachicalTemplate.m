@@ -1,8 +1,6 @@
-function [S2T, S3T] = hierachicalTemplate(numPart, part_sx, part_sy, sx, sy, rotateShiftLimit, nOrient, numRotate, template, nScaleGabor, partRotationRange,PartLocX, PartLocY)
+function [S2T, S3T] = hierachicalTemplate(numPart, part_sx, part_sy, sx, sy, rotateShiftLimit, nOrient, numRotate, template, nScaleGabor, partRotationRange, PartLocX, PartLocY)
 
-
-
-%%%%%%%% handeling the large template
+%%%%%%%% handling the large template
 S3SelectedRow = zeros(1,numPart);
 S3SelectedCol = zeros(1,numPart);
 S3SelectedOri = zeros(1,numPart);

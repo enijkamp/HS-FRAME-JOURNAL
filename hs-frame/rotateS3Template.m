@@ -1,4 +1,4 @@
-function [allS3SelectedRow, allS3SelectedCol, allS3SelectedOri]= rotateS3Template(S3SelectedRow,S3SelectedCol,S3SelectedOri,rotateShiftLimit,nOrient,numRotate,numPart)
+function [allS3SelectedRow, allS3SelectedCol, allS3SelectedOri] = rotateS3Template(S3SelectedRow,S3SelectedCol,S3SelectedOri,rotateShiftLimit,nOrient,numRotate,numPart)
 
 allS3SelectedRow = zeros(numRotate,numPart,'single');
 allS3SelectedCol = zeros(numRotate,numPart,'single');

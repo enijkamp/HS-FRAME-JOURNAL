@@ -16,7 +16,8 @@ para.DoGScaleList = [];
 
 para.numCluster = 1;
 para.numWavelet = 50;   % default 300, 370
-para.numEMIteration = 10;
+%para.numEMIteration = 10;
+para.numEMIteration = 4;
 para.isLocalNormalize = true;
 
 %para.relativePartRotationRange = 1*(-1:1);
@@ -30,7 +31,10 @@ para.relativePartLocationRange = 0;
 %para.ratioDisplacementSUM3=0;   % default=0. Compute all values in SUM3 map
 
 para.resolutionShiftLimit = 0;
-para.rotateShiftLimit = 0;   % template rotation  from -rotateShiftLimit to rotateShiftLimit, eg. (1)-2:2 if rotateShiftLimit=2 (2)0 is without rotation
+
+para.rotateShiftLimit = 10;   % template rotation  from -rotateShiftLimit to rotateShiftLimit, eg. (1)-2:2 if rotateShiftLimit=2 (2)0 is without rotation
+para.nOrient = 10;
+
 para.ratioDisplacementSUM3 = 0;   % default=0. Compute all values in SUM3 map
 
 %para.locationShiftLimit = 1;  % arg-max

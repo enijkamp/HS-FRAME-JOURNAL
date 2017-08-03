@@ -9,9 +9,8 @@ allSelectedFilter = cell(numPart, numPartRotate);
 for iPart = 1:numPart
 
  numElement=length(selectedRow{iPart});
-   
-                        
- for (r=1:numPartRotate)  
+         
+ for r = 1:numPartRotate
      
     rot = partRotationRange(r);
     theta = -pi*rot/numOrient;
