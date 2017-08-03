@@ -8,6 +8,7 @@ addpath('hs-frame');
 % config
 para = config();
 task_id = 1;
+noWorkers = 1;
 
 % mex
 compileMex();
@@ -268,7 +269,7 @@ for iImg = 1:numImage
 end
 
 
-%% Prepare variables for EM
+%% Step 1: Prepare variables for EM
 
 %%%%%%% initialization of alignment
 clusters=struct('imageIndex',cell(numCluster,1),'cropImage', cell(numCluster,1),'rHat',[],'template',[],'logZ',[], 'S2T', [], 'S3T', []);  % structure to store information of cluster
@@ -344,10 +345,8 @@ for c = 1:numCluster
     end
 
 end
-it = 0;
-ShowClusteringAssignment;
 
-%% EM iteration
+%% Step 2: EM iteration
 for it = 1:numEMIteration
 
     %%%% M-step
@@ -360,9 +359,6 @@ for it = 1:numEMIteration
     if ~exist(savingFolder)
         mkdir(savingFolder);
     end
-
-    % cpu paralleled learning
-    noWorkers = 1;
 
     ticID=tic;
 
@@ -380,19 +376,19 @@ for it = 1:numEMIteration
             switch para.method
                 case 'one_stage'
 
-                    [template, currSample, logZ]=sparseFRAMElearnGibbs_multipleSelection(filters, nScaleGabor, nScaleDoG, nOrient, filterSymbol, half, clusters(c).rHat, ...
+                    [template, currSample, logZ] = sparseFRAMElearnGibbs_multipleSelection(filters, nScaleGabor, nScaleDoG, nOrient, filterSymbol, half, clusters(c).rHat, ...
                         sx, sy, halfFilterSizes, locationShiftLimit, nTileRow, nTileCol, lambdaLearningRate_boosting, numFilter, numWavelet, interval, Corr, threshold_corrBB, c_val_list, ...
                         lower_bound_rand, upper_bound_rand, nPartCol, nPartRow, part_sx, part_sy, gradient_threshold_scale, clusterSavingFolder);
 
                 case 'two_stage'
 
                     disp('start filter selection');
-                    [template, deformedTemplate]= filtersSelection_em(clusters(c).cropImage, GaborScaleList, DoGScaleList, nOrient, numSketch, numTopFeatureToShow,...
+                    [template, deformedTemplate] = filtersSelection_em(clusters(c).cropImage, GaborScaleList, DoGScaleList, nOrient, numSketch, numTopFeatureToShow,...
                         locationShiftLimit, orientShiftLimit, sx, sy, clusterSavingFolder);
                     template.selectedLambdas=single(zeros(1,template.numSelected));
 
                     disp('start learning Frame model');
-                    [template, currSample, logZ]=sparseFRAMElearn(template, nIter, filters, clusters(c).rHat, sx, sy, halfFilterSizes, ...
+                    [template, currSample, logZ] = sparseFRAMElearn(template, nIter, filters, clusters(c).rHat, sx, sy, halfFilterSizes, ...
                         locationShiftLimit, nTileRow,nTileCol,epsilon,L,lambdaLearningRate_MP, numSample, nPartCol, nPartRow, part_sx, part_sy, isSaved, clusterSavingFolder);
 
                 otherwise
@@ -455,73 +451,7 @@ for it = 1:numEMIteration
         end
     end
 
-    %%
-    disp('Cropping images and preparing feature maps for next iteration of learning:');
-
-    copy_MAX3scoreAll=MAX3scoreAll;
-    %%% preparation: collect training images for each cluster
-    for c = 1:numCluster
-
-        clusters(c).imageIndex=[];
-        clusters(c).cropImage={};
-
-        %%% initialize the observed statistics by setting zeros
-        for iFilter = 1:numFilter
-            clusters(c).rHat{iFilter}=zeros(sx, sy,'single');
-        end
-
-
-        t = 0; % index of image in the cluster, as well as the number of images in cluster
-        for iImg = 1:numImage
-            tic
-            [~, ind]=max(copy_MAX3scoreAll(iImg, :));
-            if ind~=c
-                continue;  % skip image that does not belong to cluster c
-            end
-            %clusteredImageIdx{c}=[clusteredImageIdx{c},iImg]; % collect the id for each cluster
-            clusters(c).imageIndex=[clusters(c).imageIndex, iImg];
-
-            t = t + 1;
-
-            % load morphed cropped images for training
-            imageLoaded = load(fullfile(morphedCroppedSavingFolder,['morphed-cluster-' num2str(c) '-img-' num2str(iImg,'%04d')]), 'cropedMorphedImage');
-            cropedImage = imageLoaded.cropedMorphedImage;
-
-            cropedImage = cropedImage - mean(cropedImage(:));
-            cropedImage = cropedImage/std(cropedImage(:))*sqrt(sigsq);
-
-            % for re-learning in matching pursuit
-            clusters(c).cropImage=[clusters(c).cropImage, double(cropedImage)];
-
-            % compute feature map to learn
-            [~,MAX1] = applyfilterBank_MultiResolution_sparseV4({cropedImage}, filters, halfFilterSizes, nOrient, locationShiftLimit,orientShiftLimit,...
-                isLocalNormalize,isSeparate,localNormScaleFactor,thresholdFactor,nScaleGabor,nScaleDoG, sqrt(sigsq));  % if using local normalization, the last parameter is important.
-
-            % sum over the observed statistics (within cluster)
-            for iFilter = 1:numFilter
-                clusters(c).rHat{iFilter}=clusters(c).rHat{iFilter}+MAX1{iFilter};
-            end
-
-            disp(['cropping time for image ' num2str(t) ' in cluster ' num2str(c) ': ' num2str(toc) ' seconds']);
-        end
-
-        disp(['Cluster ' num2str(c) ' has ' num2str(t) ' members.']);
-
-        % average the observed statistics
-        for iFilter = 1:numFilter
-            clusters(c).rHat{iFilter}=clusters(c).rHat{iFilter}/t;
-        end
-
-    end
-
-    ShowClusteringAssignment;  % show the cluster member before learning
-
-    template_name = sprintf([templatePath '/template_task%d_seed%d_iter%d.mat'], task_id, seed, it);
-    save(template_name, 'clusters', 'MAX3scoreAll');
-
 end
-
-
 
 disp('done.');
 

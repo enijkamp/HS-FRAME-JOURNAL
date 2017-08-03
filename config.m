@@ -11,11 +11,11 @@ para.nPartRow = 2;
 para.part_sx = 50;
 para.part_sy = 50;
 
-para.GaborScaleList = [0.2, 0.4, 0.7];
+para.GaborScaleList = [0.2, 0.6];
 para.DoGScaleList = [];
 
 para.numCluster = 1;
-para.numWavelet = 60;   % default 300, 370
+para.numWavelet = 50;   % default 300, 370
 para.numEMIteration = 10;
 para.isLocalNormalize = true;
 
