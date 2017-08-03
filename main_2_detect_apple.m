@@ -107,7 +107,7 @@ thresholdFactor = 0.01;
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
 inPath = [para.dataPath para.categoryName];
-cachePath = ['./output/' para.name '/feature'];
+cachePath = ['./output/' 'sequence' '/feature'];
 templatePath = ['./output/' 'sequence' '/template'];
 resultPath = ['./output/' para.name '/result_seed_' num2str(seed)];
 
@@ -115,20 +115,10 @@ if exist(['./output/' para.name],'dir')
     rmdir(['./output/' para.name],'s')
 end
 
-if ~exist(cachePath,'dir')
-    mkdir(cachePath)
-else
-    rmdir(cachePath,'s')
-    mkdir(cachePath)
-end
 if ~exist(resultPath,'dir')
     mkdir(resultPath)
     mkdir(fullfile(resultPath,'img'));
-else
-    mkdir(resultPath)
-    mkdir(fullfile(resultPath,'img'));
 end
-
 
 %% Step 0: prepare filter, training images, and filter response on images
 GaborScaleList = para.GaborScaleList;
@@ -266,92 +256,13 @@ for iImg = 1:numImage
     save(mapName, 'imageOriginal', 'ImageMultiResolution','SUM1mapFind', 'MAX1mapFind','allSizex', 'allSizey');
 
     disp(['filtering time: ' num2str(toc) ' seconds']);
-
-    %     mapName = fullfile(cachePath,['SUMMAXmap-image' num2str(iImg) '.mat']);
-    %     current_file_name=files(iImg).name;
-    %     save(mapName, 'M1','current_file_name');  % only save the MAX1
 end
 
-
-%% Step 1: Prepare variables for EM
-
-%%%%%%% initialization of alignment
-clusters=struct('imageIndex',cell(numCluster,1),'cropImage', cell(numCluster,1),'rHat',[],'template',[],'logZ',[], 'S2T', [], 'S3T', []);  % structure to store information of cluster
-
-MAX3scoreAll = rand(numImage, numCluster);   % randomly assign members to different cluster
-
-for c = 1:numCluster
-
-    clusters(c).imageIndex=[];
-    clusters(c).cropImage={};
-
-    %%% initialize the observed statistics by setting zeros
-    for iFilter = 1:numFilter
-        clusters(c).rHat{iFilter}=zeros(sx, sy,'single');
-    end
-
-    t = 0; % index of image in the cluster, as well as the number of images in cluster
-    for iImg = 1:numImage
-        tic
-        [~, ind] = max(MAX3scoreAll(iImg, :));
-        if ind ~= c
-            continue;  % skip image that does not belong to cluster c
-        end
-        clusters(c).imageIndex=[clusters(c).imageIndex, iImg];
-
-        t = t + 1;  % number of training images
-
-        imageLoaded = load(fullfile(cachePath,['SUMMAXmap-image' num2str(iImg)]));
-
-        % we initialize the alignment by cropping patch form original resolution image, with 0 level rotation and center (img_x/2. img_y/2)
-        rot_init = 0;    % 0 level
-        ind_init = originalResolution;  % original resolution
-        Fx_init = floor(allSizex(originalResolution)/2);  % center x
-        Fy_init = floor(allSizey(originalResolution)/2);   % center y
-
-        cropedImage = single(zeros(sx, sy));
-        Ccopy(cropedImage, single(imageLoaded.ImageMultiResolution{ind_init}), Fx_init, Fy_init, floor(sx/2), floor(sy/2), sx, sy, allSizex(ind_init), allSizey(ind_init), -rot_init*pi/nOrient);
-
-        % optinal: output cropped images for iteration 0
-        savingFolder0=fullfile(resultPath,['iteration0/morphedCropped/']);
-        if ~exist(savingFolder0)
-            mkdir(savingFolder0);
-        end
-
-        gLow = min(cropedImage(:));
-        gHigh = max(cropedImage(:));
-        img_tem = (cropedImage-gLow)/(gHigh-gLow);
-        imwrite(img_tem,fullfile(savingFolder0,['morphed-cluster-' num2str(c) '-img-' num2str(iImg,'%04d') '.png']));
-
-        cropedImage = cropedImage - mean(cropedImage(:));
-        cropedImage = cropedImage/std(cropedImage(:))*sqrt(sigsq);
-
-        clusters(c).cropImage=[clusters(c).cropImage, double(cropedImage)];
-
-        % compute feature map to learn
-        [~, MAX1] = applyfilterBank_MultiResolution_sparseV4({cropedImage}, filters, halfFilterSizes, nOrient, locationShiftLimit,orientShiftLimit,...
-            isLocalNormalize,isSeparate,localNormScaleFactor,thresholdFactor,nScaleGabor,nScaleDoG, sqrt(sigsq));  % if using local normalization, the last parameter is important.
-
-        % sum over the observed statistics (within cluster)
-        for iFilter = 1:numFilter
-            clusters(c).rHat{iFilter}=clusters(c).rHat{iFilter}+MAX1{iFilter};
-        end
-
-        disp(['cropping time for image ' num2str(t) ' in cluster ' num2str(c) ': ' num2str(toc) ' seconds']);
-    end
-
-    disp(['Cluster ' num2str(c) ' has ' num2str(t) ' members.']);
-
-    % average the observed statistics
-    for iFilter = 1:numFilter
-        clusters(c).rHat{iFilter}=clusters(c).rHat{iFilter}/t;
-    end
-
-end
 
 %% Step 2: EM iteration
 for it = 1:numEMIteration
     
+    %%%% M-step
     template_name = sprintf([templatePath '/template_task%d_seed%d_iter%d.mat'], task_id, seed, it);
     load(template_name, 'clusters', 'MAX3scoreAll');
     
