@@ -109,7 +109,7 @@ thresholdFactor = 0.01;
 inPath = [para.dataPath para.categoryName];
 cachePath = ['./output/' para.name '/feature'];
 templatePath = ['./output/' 'sequence' '/template'];
-resultPath = ['./output/' para.name '_test/result_seed_' num2str(seed)];
+resultPath = ['./output/' para.name '/result_seed_' num2str(seed)];
 
 if exist(['./output/' para.name],'dir')
     rmdir(['./output/' para.name],'s')
@@ -391,6 +391,12 @@ for it = 1:numEMIteration
 
         end
     end
+    
+    I_s = uint8(zeros([[100, 100], 3, numImage]));
+    for iImg = 1:numImage
+        I_s(:,:,:,iImg) = imread([boundingBoxSavingFolder '/' 'boundingBox-cluster-1-img-' sprintf('%04d', iImg) '.png']);
+    end
+    imSaveAsGif([boundingBoxSavingFolder '/boundingBox.gif'], I_s);
 
 end
 

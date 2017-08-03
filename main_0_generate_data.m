@@ -1,4 +1,4 @@
-angle = 15;
+angle = 18;
 n = 360/angle;
 
 [I, I_s] = rotate('data-source/sequence/apple/apple.png', angle);
