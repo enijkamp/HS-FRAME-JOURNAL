@@ -1,6 +1,6 @@
-function [] = compileMex()
+function [] = compileMex(src)
 
-old_dir = cd('hs-frame');
+old_dir = cd(src);
 
 mex Ccopy.c;
 mex CgetMAX1.c;

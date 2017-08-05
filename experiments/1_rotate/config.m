@@ -1,7 +1,7 @@
 function para = config()
 
-para.name = 'sequence';
-para.dataPath = 'data-set/sequence/';
+para.name = 'rotate';
+para.dataPath = 'dataset/rotate';
 para.categoryName = 'apple';
 
 para.method = 'two_stage';  % 'two_stage' : matching pursuit learning,  'one_stage': generative boosting learning
@@ -17,7 +17,7 @@ para.DoGScaleList = [];
 para.numCluster = 1;
 para.numWavelet = 50;   % default 300, 370
 %para.numEMIteration = 10;
-para.numEMIteration = 4;
+para.numEMIteration = 2;
 para.isLocalNormalize = true;
 
 %para.relativePartRotationRange = 1*(-1:1);

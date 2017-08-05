@@ -3,7 +3,8 @@ clear;
 close all;
 
 % code
-addpath('hs-frame');
+addpath('../../src/frame');
+addpath('../../src/image');
 
 % config
 para = config();
@@ -11,7 +12,7 @@ task_id = 1;
 noWorkers = 1;
 
 % mex
-compileMex();
+compileMex('../../src/frame');
 
 % set seed for random numbers generation
 seed=1;
@@ -100,7 +101,7 @@ localNormScaleFactor = 2; %0.5, 1, 2, 3, or 4, we suggest 2;
 thresholdFactor = 0.01;
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
-inPath = [para.dataPath para.categoryName];
+inPath = [para.dataPath '/' para.categoryName];
 cachePath = ['./output/' para.name '/feature'];
 templatePath = ['./output/' para.name '/template'];
 resultPath = ['./output/' para.name '/result_seed_' num2str(seed)];
@@ -109,7 +110,9 @@ if exist(['./output/' para.name],'dir')
     rmdir(['./output/' para.name],'s')
 end
 
-if ~exist(templatePath,'dir'),mkdir(templatePath),end
+if ~exist(templatePath,'dir')
+    mkdir(templatePath)
+end
 
 if ~exist(cachePath,'dir')
     mkdir(cachePath)
